@@ -25,6 +25,10 @@ MAX_REVIEWS = int(os.environ.get("MAX_REVIEWS", "5000"))
 ROTATION = int(os.environ.get("ROTATION_BATCH", "4"))
 SKIP_EMAIL = ("example.", "sentry", "wixpress", "@domain", "noreply", "no-reply",
               ".png", ".jpg", ".webp", "@2x", "godaddy", "yourname", "email@")
+# Businesses that rarely buy brand work: resellers, chains' outlets, utilities, public bodies.
+SKIP_CATEGORIES = ("wholesaler", "supplier", "distributor", "pharmacy", "chemist", "medical store",
+                   "atm", "bank", "government", "petrol", "gas station",
+                   "warehouse", "manufacturer", "courier")
 MAPS_COLUMNS = ["Date added", "Search", "Name", "Category", "Address", "Location searched",
                 "Phone", "Website", "Email", "Email source", "Rating", "Reviews",
                 "Google Maps link", "Place ID", "Status", "Notes", "Marketing need (0-10)",
@@ -139,6 +143,8 @@ def push(results_path):
             except ValueError:
                 reviews = 0
             if not site or not found or "closed" in (r.get("status") or "").lower():
+                continue
+            if any(w in (r.get("category") or "").lower() for w in SKIP_CATEGORIES):
                 continue
             if not (p["min"] <= reviews <= MAX_REVIEWS):
                 continue
