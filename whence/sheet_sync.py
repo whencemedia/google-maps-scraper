@@ -29,6 +29,9 @@ SKIP_EMAIL = ("example.", "sentry", "wixpress", "@domain", "noreply", "no-reply"
 SKIP_CATEGORIES = ("wholesaler", "supplier", "distributor", "pharmacy", "chemist", "medical store",
                    "atm", "bank", "government", "petrol", "gas station",
                    "warehouse", "manufacturer", "courier")
+CHAIN_SITE = re.compile(r"/stores?/|store-?locator|locator|utm_source=(google_)?gmb|utm_source=locator|"
+                        r"^https?://(stores?|locations?|outlets?)\.|-stores?\.", re.I)
+VALID_EMAIL = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.([a-z]{2}|com|org|net|io|store|shop|studio|design|boutique|life|biz|info|xyz|online|site|club|world|fashion|beauty|health|clinic|care|app|ai)$", re.I)
 MAPS_COLUMNS = ["Date added", "Search", "Name", "Category", "Address", "Location searched",
                 "Phone", "Website", "Email", "Email source", "Rating", "Reviews",
                 "Google Maps link", "Place ID", "Status", "Notes", "Marketing need (0-10)",
@@ -145,6 +148,12 @@ def push(results_path):
             if not site or not found or "closed" in (r.get("status") or "").lower():
                 continue
             if any(w in (r.get("category") or "").lower() for w in SKIP_CATEGORIES):
+                continue
+            # A store page inside a bigger site (e.g. /stores/..., store locators) means a chain outlet.
+            if CHAIN_SITE.search(site):
+                continue
+            found = [e for e in found if VALID_EMAIL.match(e)]
+            if not found:
                 continue
             if not (p["min"] <= reviews <= MAX_REVIEWS):
                 continue
