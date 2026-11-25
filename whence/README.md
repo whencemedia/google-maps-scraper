@@ -21,6 +21,7 @@ Edit the **Maps Config** tab in the sheet. "Max results" 20, 40 or 60 sets how d
 In **Settings > Secrets and variables > Actions**:
 
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: the JSON key of a Google Cloud service account. Share the sheet with that account's email as an Editor.
-- `LEADS_SHEET_ID`: `1Qg2mwQbDsUkqVunOa0nVlU6t6aKByFmMtKgWV-kVKw4`
+
+The sheet ID is already set to the Whence Lead Crawler sheet. To use another sheet, add a `LEADS_SHEET_ID` secret.
 
 Leads are never saved in this repo, because the repo is public. Each run's files are kept as a download on the run page for 14 days.
