@@ -1,0 +1,82 @@
+name: Whence daily Maps leads
+
+on:
+  schedule:
+    - cron: "43 0 * * *" # 06:13 IST every day
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "Optional: your own searches, separated by ; (e.g. skincare brand in Pune; cafe in Goa). Leave empty to use the daily rotation."
+        required: false
+        default: ""
+      batch_size:
+        description: "How many searches from the rotation to run"
+        required: false
+        default: "8"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whence-leads
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Choose today's searches
+        env:
+          CUSTOM_QUERIES: ${{ github.event.inputs.queries }}
+          BATCH: ${{ github.event.inputs.batch_size || '8' }}
+        run: |
+          mkdir -p run
+          if [ -n "$CUSTOM_QUERIES" ]; then
+            echo "$CUSTOM_QUERIES" | tr ';' '\n' | sed 's/^ *//;s/ *$//' | grep -v '^$' > run/queries.txt
+            cat run/queries.txt
+          else
+            python whence/pick_queries.py "$BATCH" run/queries.txt
+          fi
+
+      - name: Run Google Maps Scraper
+        run: |
+          docker run --rm \
+            -v "$PWD/run:/work" \
+            gosom/google-maps-scraper \
+            -input /work/queries.txt \
+            -results /work/results.csv \
+            -depth 1 \
+            -email \
+            -exit-on-inactivity 5m
+
+      - name: Filter, dedupe and save leads
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          LEADS_SHEET_ID: ${{ secrets.LEADS_SHEET_ID }}
+        run: |
+          pip install --quiet gspread
+          python whence/process_leads.py run/results.csv | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit leads to the repo
+        run: |
+          git config user.name "whence-leads-bot"
+          git config user.email "whence-leads-bot@users.noreply.github.com"
+          git add whence/leads
+          git diff --cached --quiet && echo "No new leads" && exit 0
+          git commit -m "Leads for $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Keep the raw scrape for 14 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-scrape-${{ github.run_id }}
+          path: run/
+          retention-days: 14
