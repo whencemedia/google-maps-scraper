@@ -1,24 +1,26 @@
 # Whence daily Maps leads
 
-Runs on GitHub Actions every day at 06:13 IST. Nothing runs on your computer.
+Runs on GitHub Actions every day at 06:13 IST and adds new leads to the **Maps Leads** tab of the Whence Lead Crawler sheet. Nothing runs on your computer.
 
-1. Picks the next 8 searches from `lead-queries.txt` (for example "skincare brand in Pune").
-2. Runs Google Maps Scraper on them, collecting each business's website and email.
-3. Keeps businesses with a website, a public email and 15 to 2,500 reviews, which leaves out tiny shops and big chains.
-4. Skips anything already found, then saves today's leads to `leads/YYYY-MM-DD.csv` and adds them to `leads/all-leads.csv`.
-5. If the Google Sheet secrets are set, it also adds the leads to a "Maps Leads" tab in your leads sheet.
-
-## Run it now with your own searches
-
-Go to **Actions > Whence daily Maps leads > Run workflow** and type searches separated by `;`.
+1. Reads the searches from the sheet's **Maps Config** tab (rows marked Active), then adds 4 more from `lead-queries.txt` so it covers more of India.
+2. Runs Google Maps Scraper on them and visits each business's website to find an email.
+3. Keeps businesses that have a website and an email, are open, and meet the row's "Min reviews" setting.
+4. Skips anyone already in Maps Leads, India, International or Coaches, matching by website, email, Place ID or name.
+5. Adds the rest to Maps Leads with Status "New" and an empty Outreach stage, so your outreach picks them up. It also fills in "Last run" in Maps Config.
 
 ## Change what it searches
 
-Edit `lead-queries.txt`, with one search per line.
+Edit the **Maps Config** tab in the sheet. "Max results" 20, 40 or 60 sets how deep it scrolls. Extra rotating searches live in `lead-queries.txt`.
 
-## Send leads to Google Sheets (optional)
+## Run it now
 
-Add these in **Settings > Secrets and variables > Actions**:
+**Actions > Whence daily Maps leads > Run workflow.** You can type one-off searches separated by `;`.
+
+## Secrets it needs
+
+In **Settings > Secrets and variables > Actions**:
 
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: the JSON key of a Google Cloud service account. Share the sheet with that account's email as an Editor.
-- `LEADS_SHEET_ID`: the long ID in the sheet's URL, the part between `/d/` and `/edit`.
+- `LEADS_SHEET_ID`: `1Qg2mwQbDsUkqVunOa0nVlU6t6aKByFmMtKgWV-kVKw4`
+
+Leads are never saved in this repo, because the repo is public. Each run's files are kept as a download on the run page for 14 days.
